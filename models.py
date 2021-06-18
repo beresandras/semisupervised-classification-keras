@@ -94,6 +94,7 @@ class KNNClassifier:
         self.bank_index = 0
 
         self.accuracy = keras.metrics.SparseCategoricalAccuracy()
+        self.metric_name = f"val_{self.k}-nn_acc"
 
     def empty_bank(self):
         self.feature_bank.assign(
@@ -127,8 +128,8 @@ class KNNClassifier:
             )
 
         accuracy = self.accuracy.result().numpy()
-        logs["val_knn_acc"] = accuracy
-        tf.print(f" val_{self.k}-nn_acc: {accuracy:.4f}")
+        logs[self.metric_name] = accuracy
+        tf.print(f" {self.metric_name}: {accuracy:.4f}")
 
     def predict(self, query_features):
         query_features = tf.math.l2_normalize(query_features, axis=1)

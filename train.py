@@ -16,7 +16,7 @@ from models import KNNClassifier
 tf.get_logger().setLevel("WARN")  # suppress info-level logs
 
 # hyperparameters
-num_epochs = 20
+num_epochs = 25
 width = 128
 k_values = (20, 200)
 batch_sizes = {  # unlabeled, labeled
