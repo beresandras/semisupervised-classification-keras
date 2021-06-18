@@ -10,28 +10,30 @@ from tensorflow.keras.layers.experimental import preprocessing
 
 from dataset import prepare_dataset
 from augmentations import RandomResizedCrop, RandomColorJitter
-from algorithms import InfoNCE, SuNCEt, PAWS
+from algorithms import CrossEntropy, InfoNCE, SuNCEt, PAWS
 from models import KNNClassifier
 
 tf.get_logger().setLevel("WARN")  # suppress info-level logs
 
 # hyperparameters
-num_epochs = 30
+num_epochs = 20
 width = 128
 k_values = (20, 200)
 batch_sizes = {  # unlabeled, labeled
+    CrossEntropy: (250, 250),
     InfoNCE: (500, 25),
     SuNCEt: (250, 250),
     PAWS: (250, 250),
 }
 hyperparams = {
+    CrossEntropy: {},
     InfoNCE: {"temperature": 0.1},
     SuNCEt: {"temperature": 0.1, "supervised_loss_weight": 1.0},
     PAWS: {"temperature": 0.1, "sharpening": 0.25},
 }
 
 # select an algorithm
-Algorithm = InfoNCE  # InfoNCE, SuNCEt, PAWS
+Algorithm = CrossEntropy  # CrossEntropy, InfoNCE, SuNCEt, PAWS
 
 # load STL10 dataset
 train_dataset, eval_train_dataset, eval_test_dataset = prepare_dataset(

@@ -45,8 +45,8 @@ class SemisupervisedModel(keras.Model):
             loss = self.semisupervised_loss(
                 labels, labeled_features, unlabeled_features_1, unlabeled_features_2
             )
-        gradients = tape.gradient(loss, self.encoder.trainable_weights)
-        self.optimizer.apply_gradients(zip(gradients, self.encoder.trainable_weights))
+        gradients = tape.gradient(loss, self.trainable_weights)
+        self.optimizer.apply_gradients(zip(gradients, self.trainable_weights))
         self.loss_tracker.update_state(loss)
 
         return {m.name: m.result() for m in self.metrics}
@@ -62,6 +62,8 @@ class SemisupervisedModel(keras.Model):
         unlabeled_features_1 = self.encoder(unlabeled_images_1, training=False)
         unlabeled_features_2 = self.encoder(unlabeled_images_2, training=False)
 
+        # the InfoNCE validation loss will be lower the the train one,
+        # because the labeled batch sizes are smaller
         loss = self.semisupervised_loss(
             labels, labeled_features, unlabeled_features_1, unlabeled_features_2
         )
@@ -126,7 +128,7 @@ class KNNClassifier:
 
         accuracy = self.accuracy.result().numpy()
         logs["val_knn_acc"] = accuracy
-        tf.print(f" val_{self.k}-nn_acc: {accuracy}")
+        tf.print(f" val_{self.k}-nn_acc: {accuracy:.4f}")
 
     def predict(self, query_features):
         query_features = tf.math.l2_normalize(query_features, axis=1)

@@ -1,7 +1,33 @@
 import tensorflow as tf
 
 from tensorflow import keras
+from tensorflow.keras import layers
 from models import SemisupervisedModel
+
+
+class CrossEntropy(SemisupervisedModel):
+    def __init__(self, augmenter, encoder):
+        super().__init__(augmenter, encoder)
+
+        self.num_classes = 10
+        self.classifier_head = keras.Sequential(
+            [
+                layers.Input(shape=encoder.output_shape[1]),
+                layers.ReLU(),  # activation on the output of the encoder
+                layers.Dense(self.num_classes),
+            ],
+            name="classifier_head",
+        )
+
+    def semisupervised_loss(
+        self, labels, labeled_features, unlabeled_features_1, unlabeled_features_2
+    ):
+        # supervised baseline: uses only labeled images
+        # features -> logits -> softmax + cross-entropy
+        class_logits = self.classifier_head(labeled_features)
+        return keras.losses.sparse_categorical_crossentropy(
+            labels, class_logits, from_logits=True
+        )
 
 
 class InfoNCE(SemisupervisedModel):
@@ -13,6 +39,9 @@ class InfoNCE(SemisupervisedModel):
     def semisupervised_loss(
         self, labels, labeled_features, unlabeled_features_1, unlabeled_features_2
     ):
+        # self-supervised baseline: uses only unlabeled images
+        # 2 x features -> pairwise similarity -> temperature scaling + softmax + cross-entropy
+        # labels = the pairs of features from the same image should be most similar
         batch_size = tf.shape(unlabeled_features_1)[0]
 
         unlabeled_features_1 = tf.math.l2_normalize(unlabeled_features_1, axis=1)
@@ -38,7 +67,8 @@ class SuNCEt(InfoNCE):
     def semisupervised_loss(
         self, labels, labeled_features, unlabeled_features_1, unlabeled_features_2
     ):
-        selfsupervised_loss = super().semisupervised_loss(
+        # self-supervised contrastive loss (InfoNCE) + supervised contrastive loss (SuNCEt)
+        self_supervised_loss = super().semisupervised_loss(
             labels, labeled_features, unlabeled_features_1, unlabeled_features_2
         )
 
@@ -54,7 +84,7 @@ class SuNCEt(InfoNCE):
             labels, class_probabilities
         )
 
-        return selfsupervised_loss + self.supervised_loss_weight * supervised_loss
+        return self_supervised_loss + self.supervised_loss_weight * supervised_loss
 
 
 class PAWS(SemisupervisedModel):
@@ -84,6 +114,7 @@ class PAWS(SemisupervisedModel):
     def semisupervised_loss(
         self, labels, labeled_features, unlabeled_features_1, unlabeled_features_2
     ):
+        # self-labeling with a soft-nn classifier using the labeled batch
         pred_probabilities_1 = self.soft_nn_predict(
             labels, labeled_features, unlabeled_features_1
         )
@@ -100,6 +131,8 @@ class PAWS(SemisupervisedModel):
         )
         mean_target_probabilities = tf.reduce_mean(target_probabilities, axis=0)
 
+        # the predicted label distribution should be close to its sharper version
+        # the average predicted label distribution should be uniform
         loss = keras.losses.categorical_crossentropy(
             tf.stop_gradient(target_probabilities),
             pred_probabilities,
