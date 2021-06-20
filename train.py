@@ -18,7 +18,7 @@ tf.get_logger().setLevel("WARN")  # suppress info-level logs
 # hyperparameters
 num_epochs = 25
 width = 128
-k_values = (20, 200)
+k_values = (20, 200)  # for knn classification
 batch_sizes = {  # unlabeled, labeled
     CrossEntropy: (250, 250),
     InfoNCE: (500, 25),
@@ -33,7 +33,7 @@ hyperparams = {
 }
 
 # select an algorithm
-Algorithm = CrossEntropy  # CrossEntropy, InfoNCE, SuNCEt, PAWS
+Algorithm = SuNCEt  # CrossEntropy, InfoNCE, SuNCEt, PAWS
 
 # load STL10 dataset
 train_dataset, eval_train_dataset, eval_test_dataset = prepare_dataset(
@@ -92,5 +92,5 @@ history = model.fit(
 )
 
 # save history
-with open("{}.pkl".format(Algorithm.__name__), "wb") as write_file:
-    pickle.dump(history.history, write_file)
+with open("{}.pkl".format(Algorithm.__name__), "wb") as output_file:
+    pickle.dump(history.history, output_file)
